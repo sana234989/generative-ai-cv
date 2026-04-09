@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>L'IA Générative en Vision par Ordinateur — ELI5</title>
+  <meta name="description" content="Comment une machine peut-elle inventer des images ? Découvre GAN, VAE et les Diffusion Models — simplement." />
+  <meta property="og:title" content="L'IA Générative en Computer Vision — ELI5" />
+  <meta property="og:description" content="GAN, VAE, Diffusion Models expliqués simplement avec diagrammes et démo interactive." />
+  <meta property="og:type" content="article" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #f5f2eb;
+      --bg2:      #ede9e0;
+      --bg3:      #e4dfd4;
+      --ink:      #1a1916;
+      --ink2:     #4a4740;
+      --ink3:     #8a8880;
+      --ink4:     #b5b2aa;
+      --red:      #c8382a;
+      --red-l:    #fdf0ee;
+      --red-b:    #e8c5c0;
+      --green:    #2a6e3a;
+      --green-l:  #eef5f0;
+      --green-b:  #b8d8c0;
+      --purple:   #5a3a8a;
+      --purple-l: #f0ecf8;
+      --purple-b: #c8b8e8;
+      --amber:    #b86800;
+      --amber-l:  #fef6e8;
+      --amber-b:  #f0d090;
+      --font-d: 'Syne', sans-serif;
+      --font-b: 'Instrument Serif', Georgia, serif;
+      --font-m: 'JetBrains Mono', monospace;
+      --max: 820px;
+      --r: 10px;
+      --rl: 16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-b);
+      font-size: 17.5px;
+      line-height: 1.82;
+      min-height: 100vh;
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(26,25,22,.022) 28px, rgba(26,25,22,.022) 29px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #progress {
+      position: fixed; top: 0; left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--red), var(--purple));
+      z-index: 200; width: 0; transition: width .08s linear;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(245,242,235,.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--bg3);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .7rem 2rem;
+    }
+    .nav-brand {
+      font-family: var(--font-d); font-weight: 800; font-size: .95rem;
+      letter-spacing: -.01em; color: var(--ink); text-decoration: none;
+    }
+    .nav-brand span { color: var(--red); }
+    .nav-links { list-style: none; display: flex; gap: 1.3rem; }
+    .nav-links a {
+      font-family: var(--font-d); font-size: 11px; font-weight: 600;
+      letter-spacing: .07em; text-transform: uppercase;
+      color: var(--ink3); text-decoration: none; transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--ink); }
+
+    /* LAYOUT */
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 1; }
+
+    /* HERO */
+    .hero { padding: 5.5rem 0 3.5rem; border-bottom: 1px solid var(--bg3); }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-d); font-size: 11px; font-weight: 700;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--ink3); margin-bottom: 1.5rem;
+    }
+    .hero-eyebrow::before { content:''; display:block; width:28px; height:2px; background:var(--red); border-radius:1px; }
+    .hero h1 {
+      font-family: var(--font-d); font-size: clamp(2.4rem,5.5vw,3.9rem);
+      font-weight: 800; line-height: 1.08; letter-spacing: -.03em; color: var(--ink); margin-bottom: 1.1rem;
+    }
+    .hero h1 em { font-style: italic; font-family: var(--font-b); color: var(--red); font-weight: 400; }
+    .hero-sub { font-size: 1.08rem; color: var(--ink2); max-width: 560px; margin-bottom: 1.8rem; font-style: italic; }
+    .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+    .badge {
+      font-family: var(--font-d); font-size: 11px; font-weight: 600; letter-spacing: .06em;
+      text-transform: uppercase; padding: 4px 12px; border-radius: 20px;
+      border: 1px solid var(--bg3); color: var(--ink3); background: var(--bg2);
+    }
+    .scroll-hint {
+      display: flex; align-items: center; gap: 8px;
+      font-family: var(--font-d); font-size: 11px; font-weight: 600; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--ink4); margin-top: 2.5rem;
+      animation: bounce 2s ease-in-out infinite;
+    }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }
+
+    /* SECTIONS */
+    section { padding: 4rem 0; border-bottom: 1px solid var(--bg3); }
+    section:last-of-type { border-bottom: none; }
+
+    .sec-num {
+      font-family: var(--font-d); font-size: 11px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--ink4);
+      margin-bottom: .5rem; display: flex; align-items: center; gap: 10px;
+    }
+    .sec-num::after { content:''; flex:1; height:1px; background:var(--bg3); }
+
+    h2 {
+      font-family: var(--font-d); font-size: clamp(1.55rem,3vw,2.15rem);
+      font-weight: 800; letter-spacing: -.025em; line-height: 1.2;
+      color: var(--ink); margin-bottom: .4rem;
+    }
+    .sec-desc { font-size: .98rem; color: var(--ink3); font-family: var(--font-d); margin-bottom: 2rem; }
+
+    p { margin-bottom: 1rem; color: var(--ink2); }
+    p strong { color: var(--ink); font-weight: 600; }
+
+    /* CALLOUTS */
+    .callout {
+      border-radius: var(--r); padding: 1rem 1.3rem; margin: 1.6rem 0;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .callout-icon { font-size: 1.25rem; flex-shrink: 0; margin-top: 2px; }
+    .callout-body { font-size: .93rem; color: var(--ink2); line-height: 1.7; }
+    .callout-body strong { color: var(--ink); }
+    .cq { background: #eaf0f8; border-left: 3px solid #1e4a7a; }
+    .ca { background: var(--amber-l); border-left: 3px solid var(--amber); }
+    .ct { background: var(--green-l); border-left: 3px solid var(--green); }
+    .cf { background: var(--purple-l); border-left: 3px solid var(--purple); }
+
+    /* FEATURE GRID */
+    .fg { display: grid; grid-template-columns: repeat(auto-fit,minmax(185px,1fr)); gap: 12px; margin: 1.8rem 0; }
+    .fc {
+      background: var(--bg2); border: 1px solid var(--bg3); border-radius: var(--r);
+      padding: 1rem 1.1rem; transition: transform .2s, box-shadow .2s;
+    }
+    .fc:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(26,25,22,.08); }
+    .fi { font-size: 1.4rem; margin-bottom: .4rem; }
+    .ft { font-family: var(--font-d); font-size: .82rem; font-weight: 700; color: var(--ink); margin-bottom: .25rem; }
+    .fd { font-family: var(--font-d); font-size: .82rem; color: var(--ink3); line-height: 1.5; }
+
+    /* ARCH BLOCKS */
+    .ab { border-radius: var(--rl); border: 1.5px solid; margin: 2.5rem 0; overflow: hidden; }
+    .ab.gan  { border-color: var(--red-b); }
+    .ab.vae  { border-color: var(--green-b); }
+    .ab.diff { border-color: var(--purple-b); }
+
+    .ah {
+      display: flex; align-items: center; gap: 12px;
+      padding: 1rem 1.4rem;
+    }
+    .ab.gan  .ah { background: var(--red-l); }
+    .ab.vae  .ah { background: var(--green-l); }
+    .ab.diff .ah { background: var(--purple-l); }
+
+    .at {
+      font-family: var(--font-d); font-size: 10px; font-weight: 700;
+      letter-spacing: .12em; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 20px; color: #fff;
+    }
+    .ab.gan  .at { background: var(--red); }
+    .ab.vae  .at { background: var(--green); }
+    .ab.diff .at { background: var(--purple); }
+
+    .an { font-family: var(--font-d); font-size: 1.1rem; font-weight: 800; color: var(--ink); }
+    .as { font-family: var(--font-b); font-size: .92rem; font-style: italic; color: var(--ink3); margin-left: auto; }
+    .ab-body { padding: 1.4rem; }
+
+    .ap { list-style: none; margin: .7rem 0 1.3rem; }
+    .ap li { padding: .22rem 0 .22rem 1.3rem; position: relative; font-size: .93rem; color: var(--ink2); }
+    .ap li::before { content:'→'; position:absolute; left:0; color:var(--ink4); font-size:.8em; }
+    .ap li strong { color: var(--ink); font-weight: 600; }
+
+    /* DIAGRAMS */
+    .dw { background: white; border-radius: var(--r); border: 1px solid var(--bg3); padding: 1.2rem .8rem; margin: 1.1rem 0; }
+    .dc { font-family: var(--font-d); font-size: 11px; color: var(--ink4); text-align: center; margin-top: .5rem; }
+
+    /* PRO/CON */
+    .pc { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 1.1rem; }
+    .pcb { border-radius: var(--r); padding: .9rem 1rem; font-family: var(--font-d); font-size: .83rem; }
+    .pros { background: var(--green-l); border: 1px solid var(--green-b); }
+    .cons { background: var(--red-l);   border: 1px solid var(--red-b); }
+    .pcb h4 { font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: .45rem; }
+    .pros h4 { color: var(--green); }
+    .cons h4 { color: var(--red); }
+    .pcb ul { list-style: none; }
+    .pcb li { padding: .18rem 0 .18rem 1rem; position: relative; color: var(--ink2); }
+    .pcb li::before { content:'·'; position:absolute; left:0; color:var(--ink4); }
+
+    /* COMPARISON TABLE */
+    .ts { overflow-x: auto; margin: 1.5rem 0; }
+    .ct2 { width:100%; border-collapse:collapse; font-family:var(--font-d); font-size:13px; min-width:540px; }
+    .ct2 th {
+      background: var(--bg3); padding: .6rem .9rem; text-align: left;
+      font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+      color: var(--ink3); border-bottom: 1px solid var(--bg3);
+    }
+    .ct2 td { padding: .65rem .9rem; border-bottom: 1px solid var(--bg3); color: var(--ink2); vertical-align: top; line-height: 1.5; }
+    .ct2 tr:last-child td { border-bottom: none; }
+    .ct2 tbody tr:hover td { background: var(--bg2); }
+    .dr { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+    .dr-r { background:var(--red); }
+    .dr-g { background:var(--green); }
+    .dr-p { background:var(--purple); }
+    .stars { color: var(--amber); font-size: 12px; }
+
+    /* TIMELINE */
+    .tl { margin: 2rem 0; position: relative; padding-left: 2rem; }
+    .tl::before {
+      content:''; position:absolute; left:7px; top:0; bottom:0;
+      width:2px; background:linear-gradient(to bottom,var(--red),var(--purple)); border-radius:1px;
+    }
+    .tli { position: relative; margin-bottom: 1.5rem; }
+    .tld {
+      position:absolute; left:-2rem; top:4px;
+      width:16px; height:16px; border-radius:50%;
+      border: 2.5px solid var(--bg); box-shadow: 0 0 0 1.5px currentColor;
+    }
+    .tli:nth-child(1) .tld { background:var(--red);    color:var(--red); }
+    .tli:nth-child(2) .tld { background:var(--green);  color:var(--green); }
+    .tli:nth-child(3) .tld { background:var(--purple); color:var(--purple); }
+    .tly { font-family:var(--font-d); font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--ink4); margin-bottom:1px; }
+    .tlt { font-family:var(--font-d); font-size:.98rem; font-weight:700; color:var(--ink); margin-bottom:1px; }
+    .tldesc { font-family:var(--font-d); font-size:.88rem; color:var(--ink3); }
+
+    /* SD FLOW */
+    .sdf { display:flex; align-items:center; gap:0; flex-wrap:wrap; justify-content:center; margin:1.8rem 0; }
+    .sdn {
+      background:var(--bg2); border:1.5px solid var(--bg3); border-radius:var(--r);
+      padding:.85rem .9rem; text-align:center; min-width:106px;
+      transition:transform .2s;
+    }
+    .sdn:hover { transform:translateY(-2px); }
+    .sdn .ni { font-size:1.35rem; margin-bottom:3px; }
+    .sdn .nl { font-family:var(--font-d); font-size:.74rem; font-weight:700; color:var(--ink); margin-bottom:1px; }
+    .sdn .ns { font-family:var(--font-d); font-size:.65rem; color:var(--ink4); line-height:1.35; }
+    .sdn.clip   { border-color:var(--red-b);    background:var(--red-l); }
+    .sdn.unet   { border-color:var(--purple-b); background:var(--purple-l); }
+    .sdn.sdvae  { border-color:var(--green-b);  background:var(--green-l); }
+    .sdn.out    { border-color:var(--amber-b);  background:var(--amber-l); }
+    .sda { padding:0 5px; color:var(--ink4); font-size:1.1rem; flex-shrink:0; }
+
+    /* CONCLUSION */
+    .cg { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:1.8rem 0; }
+    .cc {
+      border-radius:var(--r); padding:1.2rem; text-align:center;
+      border:1.5px solid;
+    }
+    .cc.red    { background:var(--red-l);    border-color:var(--red-b); }
+    .cc.green  { background:var(--green-l);  border-color:var(--green-b); }
+    .cc.purple { background:var(--purple-l); border-color:var(--purple-b); }
+    .cci { font-size:1.8rem; margin-bottom:.4rem; }
+    .ccn { font-family:var(--font-d); font-size:.88rem; font-weight:800; color:var(--ink); margin-bottom:1px; }
+    .ccs { font-family:var(--font-b); font-style:italic; font-size:.83rem; color:var(--ink3); }
+
+    .fl { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:9px; margin:1.4rem 0; }
+    .fli {
+      display:flex; align-items:center; gap:9px;
+      background:var(--bg2); border:1px solid var(--bg3); border-radius:var(--r);
+      padding:.75rem .95rem; font-family:var(--font-d); font-size:.83rem; font-weight:600; color:var(--ink2);
+    }
+
+    /* FOOTER */
+    footer {
+      text-align:center; padding:2.5rem 1.5rem;
+      font-family:var(--font-d); font-size:11.5px; color:var(--ink4);
+      background:var(--bg2); border-top:1px solid var(--bg3);
+    }
+    footer strong { color:var(--ink3); }
+    footer a { color:var(--purple); text-decoration:none; }
+    footer a:hover { text-decoration:underline; }
+
+    /* REVEAL */
+    .reveal { opacity:0; transform:translateY(20px); transition:opacity .55s ease,transform .55s ease; }
+    .reveal.visible { opacity:1; transform:none; }
+
+    /* RESPONSIVE */
+    @media(max-width:640px){
+      nav { padding:.6rem 1rem; }
+      .nav-links { display:none; }
+      .hero { padding:3rem 0 2.5rem; }
+      .pc { grid-template-columns:1fr; }
+      .cg { grid-template-columns:1fr; }
+      .sdf { flex-direction:column; }
+      .sda { transform:rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-brand">IA<span>·</span>CV</a>
+  <ul class="nav-links">
+    <li><a href="#intro">Intro</a></li>
+    <li><a href="#def">Définition</a></li>
+    <li><a href="#usages">Usages</a></li>
+    <li><a href="#arch">Architectures</a></li>
+    <li><a href="#comp">Comparaison</a></li>
+    <li><a href="#ex">Exemple réel</a></li>
+    <li><a href="#concl">Conclusion</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="wrap">
+  <div class="hero">
+    <div class="hero-eyebrow">Blog Pédagogique · ELI5</div>
+    <h1>L'IA Générative en<br><em>Vision par Ordinateur</em></h1>
+    <p class="hero-sub">Comment une machine peut-elle inventer des images ? Découvre GAN, VAE et les Diffusion Models — simplement.</p>
+    <div class="hero-badges">
+      <span class="badge">Débutant friendly</span>
+      <span class="badge">~10 min de lecture</span>
+      <span class="badge">Computer Vision</span>
+    </div>
+    <div class="scroll-hint">▼ &nbsp; Défiler pour lire</div>
+  </div>
+</div>
+
+<!-- ═══ 01 INTRODUCTION ═══ -->
+<section id="intro">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="sec-num">01 — Introduction</div>
+      <h2>Comment une machine peut-elle créer des images ?</h2>
+      <p class="sec-desc">De Midjourney aux deepfakes, l'IA générative bouleverse tout.</p>
+    </div>
+    <div class="reveal">
+      <p>Tu as sûrement vu des <strong>deepfakes</strong> — ces vidéos où un visage est remplacé par un autre. Ou encore des outils comme <strong>Midjourney</strong> ou <strong>DALL·E</strong> qui transforment une phrase en image en quelques secondes. Mais comment est-ce possible ?</p>
+      <p>Jusqu'à récemment, les ordinateurs ne pouvaient qu'<strong>analyser</strong> des images : reconnaître un chat, détecter une voiture, lire un texte. Aujourd'hui, grâce à l'IA Générative, ils peuvent aussi en <strong>créer</strong> — des visages qui n'existent pas, des paysages imaginaires, des œuvres d'art entières.</p>
+      <p>Dans ce blog, on va tout décortiquer ensemble. Pas besoin d'être ingénieur : juste de la curiosité</p>
+      <div class="callout cq">
+        <div class="callout-icon"></div>
+
+        <div class="callout-body"><strong>La grande question :</strong> Un humain apprend à dessiner en regardant des milliers d'images. Une IA fait-elle la même chose ? La réponse est… oui, mais à sa manière !</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 02 DÉFINITION ═══ -->
+<section id="def">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="sec-num">02 — Définition</div>
+      <h2>C'est quoi l'IA Générative en Computer Vision ?</h2>
+      <p class="sec-desc">Une famille de modèles qui <em>créent</em> plutôt qu'analyser.</p>
+    </div>
+    <div class="reveal">
+      <p>L'IA générative en vision par ordinateur, c'est une famille de modèles d'intelligence artificielle capables de <strong>créer de nouvelles images</strong> — pas juste de les analyser. Concrètement, voici ce que ces modèles savent faire :</p>
+      <div class="fg">
+        <div class="fc"><div class="fi"></div><div class="ft">Génération de visages</div><div class="fd">Créer des personnes qui n'ont jamais existé (ex : thispersondoesnotexist.com)</div></div>
+        <div class="fc"><div class="fi"></div><div class="ft">Texte → Image</div><div class="fd">"Un chat astronaute sur la lune" → Image réaliste en quelques secondes</div></div>
+        <div class="fc"><div class="fi"></div><div class="ft">Super-résolution</div><div class="fd">Améliorer une image floue et la rendre nette et détaillée</div></div>
+        <div class="fc"><div class="fi"></div><div class="ft">Style Transfer</div><div class="fd">Transformer une photo en peinture style Van Gogh ou Picasso</div></div>
+      </div>
+      <div class="callout ca">
+        <div class="callout-icon"></div>
+        <div class="callout-body"><strong>Analogie :</strong> Imagine un artiste peintre qui observe des millions de tableaux. Au bout d'un moment, il comprend les règles : comment dessiner un visage, comment représenter la lumière… et il peut créer ses propres œuvres. L'IA générative fait exactement cela — mais en mathématiques.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 03 CAS D'USAGE ═══ -->
+<section id="usages">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="sec-num">03 — Cas d'usage</div>
+      <h2>Pourquoi utiliser l'IA générative ?</h2>
+      <p class="sec-desc">Bien plus qu'un gadget — des applications réelles et immenses.</p>
+    </div>
+    <div class="reveal">
+      <div class="fg">
+        <div class="fc"><div class="fi"></div><div class="ft">Médecine</div><div class="fd">Générer des images médicales pour entraîner des diagnostics sans données patients</div></div>
+        <div class="fc"><div class="fi"></div><div class="ft">Jeux Vidéo</div><div class="fd">Créer automatiquement des textures, personnages et environnements</div></div>
+        <div class="fc"><div class="fi"></div><div class="ft">Cinéma</div><div class="fd">Effets spéciaux, deepfakes pour le doublage, rajeunissement d'acteurs</div></div>
+        <div class="fc"><div class="fi"></div><div class="ft">E-commerce</div><div class="fd">Générer des photos produit sans séance photo physique</div></div>
+        <div class="fc"><div class="fi"></div><div class="ft">Architecture</div><div class="fd">Visualiser un bâtiment avant qu'il soit construit, en rendu réaliste</div></div>
+        <div class="fc"><div class="fi"></div><div class="ft">Art & Design</div><div class="fd">Générer des affiches, logos, personnages sur demande</div></div>
+      </div>
+      <div class="callout ct">
+        <div class="callout-icon"></div>
+        <div class="callout-body"><strong>En résumé :</strong> Avant, si tu voulais une image d'un dragon bleu sous l'eau, tu devais chercher un photographe ou un illustrateur. Maintenant, tu tapes la phrase — et l'image apparaît. L'IA crée ce qui n'existe pas encore.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 04 ARCHITECTURES ═══ -->
+<section id="arch">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="sec-num">04 — Architectures</div>
+      <h2>Les 3 grandes architectures</h2>
+      <p class="sec-desc">Trois familles, trois philosophies, un même objectif : créer.</p>
+    </div>
+
+    <!-- GAN -->
+    <div class="reveal">
+      <div class="ab gan">
+        <div class="ah">
+          <span class="at">GAN</span>
+          <span class="an">Generative Adversarial Network</span>
+          <span class="as">Le Duel</span>
+        </div>
+        <div class="ab-body">
+          <p>Un GAN met en compétition deux réseaux de neurones qui s'entraînent l'un contre l'autre :</p>
+          <ul class="ap">
+            <li><strong>Le Générateur</strong> — il crée de fausses images à partir de bruit aléatoire</li>
+            <li><strong>Le Discriminateur</strong> — il essaie de distinguer les vraies images des fausses</li>
+          </ul>
+          <div class="callout ca">
+            <div class="callout-icon"></div>
+            <div class="callout-body"><strong>Analogie du faussaire :</strong> Imagine un faussaire qui fabrique de faux billets, et un policier qui essaie de les détecter. Le faussaire s'améliore à chaque tentative ratée, et le policier devient plus vigilant. À force de jouer ce jeu, les faux billets deviennent parfaits !</div>
+          </div>
+          <div class="dw">
+            <svg width="100%" viewBox="0 0 680 172" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </marker>
+              </defs>
+              <rect x="14" y="64" width="100" height="52" rx="8" fill="#fdf0ee" stroke="#e8c5c0" stroke-width="1"/>
+              <text x="64" y="84" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="12" font-weight="700" fill="#1a1916"> Bruit</text>
+              <text x="64" y="103" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="10" fill="#8a8880">aléatoire</text>
+              <line x1="114" y1="90" x2="148" y2="90" stroke="#b5b2aa" stroke-width="1.2" marker-end="url(#a1)"/>
+              <rect x="150" y="54" width="130" height="72" rx="8" fill="#fdf0ee" stroke="#c8382a" stroke-width="1.5"/>
+              <text x="215" y="81" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="13" font-weight="700" fill="#c8382a">Générateur</text>
+              <text x="215" y="100" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="10" fill="#8a8880">crée une image</text>
+              <line x1="280" y1="90" x2="318" y2="90" stroke="#b5b2aa" stroke-width="1.2" marker-end="url(#a1)"/>
+              <text x="299" y="80" text-anchor="middle" font-family="Syne,sans-serif" font-size="10" fill="#b5b2aa">image</text>
+              <rect x="322" y="12" width="124" height="40" rx="8" fill="#eef5f0" stroke="#b8d8c0" stroke-width="1"/>
+              <text x="384" y="32" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="11" font-weight="700" fill="#2a6e3a">Images réelles</text>
+              <line x1="384" y1="52" x2="384" y2="72" stroke="#b8d8c0" stroke-width="1.2" marker-end="url(#a1)"/>
+              <rect x="322" y="54" width="130" height="72" rx="8" fill="#eef5f0" stroke="#2a6e3a" stroke-width="1.5"/>
+              <text x="387" y="81" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="12" font-weight="700" fill="#2a6e3a">Discriminateur</text>
+              <text x="387" y="100" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="10" fill="#8a8880">vrai / faux ?</text>
+              <line x1="452" y1="90" x2="490" y2="90" stroke="#b5b2aa" stroke-width="1.2" marker-end="url(#a1)"/>
+              <rect x="492" y="64" width="110" height="52" rx="8" fill="#fef6e8" stroke="#f0d090" stroke-width="1"/>
+              <text x="547" y="84" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="12" font-weight="700" fill="#b86800">Verdict</text>
+              <text x="547" y="103" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="10" fill="#8a8880">vrai / faux ?</text>
+              <path d="M547 118 Q547 152 215 152 L215 128" fill="none" stroke="#c8382a" stroke-width="1" stroke-dasharray="5 4" marker-end="url(#a1)" opacity="0.5"/>
+              <text x="370" y="167" text-anchor="middle" font-family="Syne,sans-serif" font-size="10" fill="#b5b2aa">feedback → amélioration</text>
+            </svg>
+            <p class="dc">Flux GAN : Bruit → Générateur → Discriminateur → Verdict → feedback</p>
+          </div>
+          <div class="pc">
+            <div class="pcb pros"><h4> Avantages</h4><ul><li>Images très réalistes</li><li>Rapide à générer une fois entraîné</li><li>Efficace pour les visages, textures</li></ul></div>
+            <div class="pcb cons"><h4> Limites</h4><ul><li>Entraînement instable (mode collapse)</li><li>Difficile à contrôler précisément</li><li>Peut "bloquer" sur certains styles</li></ul></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VAE -->
+    <div class="reveal">
+      <div class="ab vae">
+        <div class="ah">
+          <span class="at">VAE</span>
+          <span class="an">Variational AutoEncoder</span>
+          <span class="as">La Compression</span>
+        </div>
+        <div class="ab-body">
+          <p>Le VAE fonctionne en deux étapes : il <strong>compresse</strong> d'abord une image en une représentation compacte, puis la <strong>reconstruit</strong> (ou en crée une nouvelle).</p>
+          <ul class="ap">
+            <li><strong>L'Encodeur</strong> — il "résume" une image en un code compact (vecteur latent)</li>
+            <li><strong>Le Décodeur</strong> — il recrée une image à partir de ce code</li>
+          </ul>
+          <div class="callout ca">
+            <div class="callout-icon"></div>
+            <div class="callout-body"><strong>Analogie de la valise :</strong> Imagine que tu dois résumer un roman de 500 pages en seulement 10 mots-clés. L'encodeur fait ce "résumé". Ensuite, le décodeur essaie de réécrire le roman à partir de ces 10 mots — il ne sera pas identique, mais il capturera l'essentiel.</div>
+          </div>
+          <div class="dw">
+            <svg width="100%" viewBox="0 0 680 168" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </marker>
+              </defs>
+              <rect x="14" y="62" width="100" height="52" rx="8" fill="#eef5f0" stroke="#b8d8c0" stroke-width="1"/>
+              <text x="64" y="82" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="12" font-weight="700" fill="#2a6e3a"> Image</text>
+              <text x="64" y="101" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="10" fill="#8a8880">réelle</text>
+              <line x1="114" y1="88" x2="150" y2="88" stroke="#b5b2aa" stroke-width="1.2" marker-end="url(#a2)"/>
+              <rect x="152" y="52" width="120" height="72" rx="8" fill="#fdf0ee" stroke="#c8382a" stroke-width="1.5"/>
+              <text x="212" y="80" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="13" font-weight="700" fill="#c8382a">Encodeur</text>
+              <text x="212" y="99" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="10" fill="#8a8880">compresse</text>
+              <line x1="272" y1="88" x2="306" y2="88" stroke="#b5b2aa" stroke-width="1.2" marker-end="url(#a2)"/>
+              <rect x="308" y="42" width="118" height="92" rx="10" fill="#fef6e8" stroke="#f0d090" stroke-width="1.5"/>
+              <text x="367" y="70" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="12" font-weight="700" fill="#b86800">z-space</text>
+              <text x="367" y="88" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="11" fill="#b86800">[ μ, σ ]</text>
+              <text x="367" y="106" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="10" fill="#8a8880">code compact</text>
+              <path d="M367 40 L367 20" fill="none" stroke="#b86800" stroke-width=".8" stroke-dasharray="4 3" marker-end="url(#a2)" opacity=".6"/>
+              <text x="367" y="14" text-anchor="middle" font-family="Syne,sans-serif" font-size="9.5" fill="#b86800"> modifiable</text>
+              <line x1="426" y1="88" x2="462" y2="88" stroke="#b5b2aa" stroke-width="1.2" marker-end="url(#a2)"/>
+              <rect x="464" y="52" width="120" height="72" rx="8" fill="#eef5f0" stroke="#2a6e3a" stroke-width="1.5"/>
+              <text x="524" y="80" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="13" font-weight="700" fill="#2a6e3a">Décodeur</text>
+              <text x="524" y="99" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="10" fill="#8a8880">reconstruit</text>
+              <line x1="584" y1="88" x2="618" y2="88" stroke="#b5b2aa" stroke-width="1.2" marker-end="url(#a2)"/>
+              <rect x="620" y="62" width="48" height="52" rx="8" fill="#eef5f0" stroke="#b8d8c0" stroke-width="1"/>
+              <text x="644" y="82" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="14"></text>
+              <text x="644" y="101" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="9" fill="#8a8880">nouvelle</text>
+            </svg>
+            <p class="dc">VAE : Image réelle → Encodeur → z-space [ μ, σ ] → Décodeur → Nouvelle image</p>
+          </div>
+          <div class="pc">
+            <div class="pcb pros"><h4>Avantages</h4><ul><li>Entraînement stable et simple</li><li>Espace latent structuré et interprétable</li><li>Bon pour interpoler entre images</li></ul></div>
+            <div class="pcb cons"><h4>Limites</h4><ul><li>Images souvent un peu floues</li><li>Moins réaliste que GAN ou Diffusion</li><li>Compression = perte de détails fins</li></ul></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DIFFUSION -->
+    <div class="reveal">
+      <div class="ab diff">
+        <div class="ah">
+          <span class="at">Diffusion</span>
+          <span class="an">Diffusion Models</span>
+          <span class="as">Le Débruitage</span>
+        </div>
+        <div class="ab-body">
+          <p>Les modèles de diffusion fonctionnent à l'inverse des autres : ils apprennent à <strong>nettoyer une image progressivement</strong>, en partant du bruit pur pour arriver à une image nette.</p>
+          <ul class="ap">
+            <li><strong>Phase d'entraînement</strong> — on ajoute du bruit à des images réelles, étape par étape, jusqu'à n'avoir plus que du bruit</li>
+            <li><strong>Phase de génération</strong> — on part d'un bruit aléatoire et on "nettoie" progressivement jusqu'à obtenir une image</li>
+          </ul>
+          <div class="callout ca">
+            <div class="callout-icon"></div>
+            <div class="callout-body"><strong>Analogie de la photo brouillée :</strong> Imagine une photo de chat recouverte de brouillard, couche par couche. Le modèle apprend à enlever chaque couche de brouillard pour retrouver la photo originale. Une fois qu'il sait faire ça, il peut partir de brouillard pur et "inventer" un nouveau chat !</div>
+          </div>
+          <div class="dw">
+            <svg width="100%" viewBox="0 0 680 205" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="a3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </marker>
+              </defs>
+              <text x="260" y="16" text-anchor="middle" font-family="Syne,sans-serif" font-size="10" fill="#b5b2aa">→ ajout de bruit (entraînement)</text>
+              <!-- x0 -->
+              <rect x="14" y="28" width="88" height="80" rx="8" fill="#f0ecf8" stroke="#c8b8e8" stroke-width="1.2"/>
+              <text x="58" y="52" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="16"></text>
+              <text x="58" y="72" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="11" font-weight="700" fill="#5a3a8a">x₀</text>
+              <text x="58" y="90" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="9" fill="#8a8880">image nette</text>
+              <line x1="102" y1="68" x2="128" y2="68" stroke="#b5b2aa" stroke-width="1" marker-end="url(#a3)"/>
+              <!-- x1 -->
+              <rect x="130" y="38" width="80" height="60" rx="8" fill="#fdf0ee" stroke="#e8c5c0" stroke-width="1"/>
+              <text x="170" y="58" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="15"></text>
+              <text x="170" y="77" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="10.5" font-weight="700" fill="#c8382a">x₁</text>
+              <line x1="210" y1="68" x2="236" y2="68" stroke="#b5b2aa" stroke-width="1" marker-end="url(#a3)"/>
+              <!-- xt -->
+              <rect x="238" y="38" width="80" height="60" rx="8" fill="#fdf0ee" stroke="#e8c5c0" stroke-width="1"/>
+              <text x="278" y="60" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="15"></text>
+              <text x="278" y="80" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="10.5" font-weight="700" fill="#c8382a">x_t</text>
+              <text x="354" y="72" text-anchor="middle" font-family="Syne,sans-serif" font-size="11" font-weight="700" fill="#b86800">…noise…</text>
+              <!-- pure noise -->
+              <rect x="394" y="28" width="88" height="80" rx="8" fill="#1a1916" stroke="#4a4740" stroke-width="1.2"/>
+              <text x="438" y="52" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="16"></text>
+              <text x="438" y="73" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="10" font-weight="700" fill="#8a8880">bruit pur</text>
+              <text x="438" y="92" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="9" fill="#4a4740">t = T</text>
+              <!-- reverse arrow -->
+              <path d="M438 110 Q438 142 58 142 L58 110" fill="none" stroke="#5a3a8a" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#a3)" opacity=".6"/>
+              <text x="248" y="157" text-anchor="middle" font-family="Syne,sans-serif" font-size="10" fill="#b5b2aa">← débruitage (génération)</text>
+              <!-- U-Net -->
+              <rect x="500" y="22" width="168" height="94" rx="8" fill="#f0ecf8" stroke="#5a3a8a" stroke-width="1.5"/>
+              <text x="584" y="48" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="12" font-weight="700" fill="#5a3a8a">Réseau U-Net</text>
+              <text x="584" y="66" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="10" fill="#8a8880">prédit le bruit à enlever</text>
+              <text x="584" y="82" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="10" fill="#8a8880">à chaque étape t</text>
+              <text x="584" y="100" text-anchor="middle" dominant-baseline="central" font-family="Syne,sans-serif" font-size="9" fill="#5a3a8a">→ guide la génération</text>
+              <line x1="484" y1="68" x2="498" y2="68" stroke="#5a3a8a" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#a3)" opacity=".5"/>
+            </svg>
+            <p class="dc">Diffusion : ajout de bruit (entraînement) ↔ débruitage guidé par U-Net (génération)</p>
+          </div>
+          <div class="pc">
+            <div class="pcb pros"><h4> Avantages</h4><ul><li>Qualité d'image exceptionnelle</li><li>Très précis et contrôlable (texte → image)</li><li>Base de Stable Diffusion, DALL·E, Midjourney</li></ul></div>
+            <div class="pcb cons"><h4> Limites</h4><ul><li>Génération lente (nombreuses étapes)</li><li>Coûteux en calcul (GPU nécessaire)</li><li>Plus complexe à entraîner</li></ul></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══ 05 COMPARAISON ═══ -->
+<section id="comp">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="sec-num">05 — Comparaison</div>
+      <h2>Quel modèle choisir ?</h2>
+      <p class="sec-desc">Chaque architecture a ses forces — voici un résumé pour choisir.</p>
+    </div>
+    <div class="reveal">
+      <div class="ts">
+        <table class="ct2">
+          <thead>
+            <tr>
+              <th>Modèle</th><th>Idée centrale</th><th>Qualité image</th><th>Vitesse</th><th>Stabilité</th><th>Cas d'usage idéal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="dr dr-r"></span><strong>GAN</strong></td>
+              <td>Duel faussaire/policier</td>
+              <td><span class="stars"></span><span style="color:var(--ink4)"></span> Très bonne</td>
+              <td> Rapide</td><td> Instable</td>
+              <td>Visages, deepfakes, super-résolution</td>
+            </tr>
+            <tr>
+              <td><span class="dr dr-g"></span><strong>VAE</strong></td>
+              <td>Compression → reconstruction</td>
+              <td><span class="stars"></span><span style="color:var(--ink4)"></span> Correcte</td>
+              <td>Rapide</td><td> Très stable</td>
+              <td>Interpolation, représentations latentes</td>
+            </tr>
+            <tr>
+              <td><span class="dr dr-p"></span><strong>Diffusion</strong></td>
+              <td>Débruitage progressif</td>
+              <td><span class="stars"></span> Excellente</td>
+              <td> Lent</td><td> Très stable</td>
+              <td>Texte → image, art génératif</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tl">
+        <div class="tli">
+          <div class="tld"></div>
+          <div class="tly">2014 — GAN inventé par Ian Goodfellow</div>
+          <div class="tlt">Révolution dans la génération d'images réalistes</div>
+          <div class="tldesc">Les premiers deepfakes apparaissent. Une nouvelle ère de la vision par ordinateur s'ouvre.</div>
+        </div>
+        <div class="tli">
+          <div class="tld"></div>
+          <div class="tly">2013 — VAE proposé par Kingma & Welling</div>
+          <div class="tlt">Approche probabiliste et stable</div>
+          <div class="tldesc">Fondement de nombreux systèmes d'encodage et de génération contrôlée.</div>
+        </div>
+        <div class="tli">
+          <div class="tld"></div>
+          <div class="tly">2020–2022 — Diffusion Models dominent</div>
+          <div class="tlt">Stable Diffusion, DALL·E 2, Midjourney</div>
+          <div class="tldesc">La qualité atteint un niveau sans précédent. La génération texte → image devient grand public.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 06 EXEMPLE RÉEL ═══ -->
+<section id="ex">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="sec-num">06 — Exemple Réel</div>
+      <h2>Stable Diffusion en action</h2>
+      <p class="sec-desc">Comment transformer "Un chat astronaute" en image réaliste ?</p>
+    </div>
+    <div class="reveal">
+      <p>Stable Diffusion est un modèle de diffusion open-source qui combine plusieurs composants pour transformer un texte en image :</p>
+      <div class="sdf">
+        <div class="sdn"><div class="ni"></div><div class="nl">"Un chat astronaute"</div><div class="ns">Prompt texte</div></div>
+        <div class="sda">→</div>
+        <div class="sdn clip"><div class="ni"></div><div class="nl">CLIP</div><div class="ns">Encodeur texte<br/>→ vecteur 768D</div></div>
+        <div class="sda">→</div>
+        <div class="sdn unet"><div class="ni"></div><div class="nl">U-Net</div><div class="ns">Diffusion guidée<br/>50 étapes de débruitage</div></div>
+        <div class="sda">→</div>
+        <div class="sdn sdvae"><div class="ni"></div><div class="nl">VAE</div><div class="ns">Décodeur<br/>latent → image</div></div>
+        <div class="sda">→</div>
+        <div class="sdn out"><div class="ni"></div><div class="nl">Image finale</div><div class="ns">512×512 px</div></div>
+      </div>
+      <div class="callout ct">
+        <div class="callout-icon"></div>
+        <div class="callout-body"><strong>Stable Diffusion combine CLIP (texte), U-Net (diffusion) et VAE (décodage) — 3 architectures en 1 !</strong></div>
+      </div>
+      <div class="callout cf">
+        <div class="callout-icon"></div>
+        <div class="callout-body"><strong>Fun fact :</strong> Stable Diffusion combine en réalité les 3 architectures qu'on a vues ! CLIP pour encoder le texte (comme un VAE), U-Net pour le débruitage (Diffusion), et un VAE pour le décodage final. Les meilleures IA modernes sont des combinaisons intelligentes de ces blocs.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 07 CONCLUSION ═══ -->
+<section id="concl">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="sec-num">07 — Conclusion</div>
+      <h2>Ce qu'il faut retenir</h2>
+      <p class="sec-desc">Trois familles, un même pouvoir : créer des images de toutes pièces.</p>
+    </div>
+    <div class="reveal">
+      <p>L'IA générative en Computer Vision repose sur trois grandes familles d'architectures :</p>
+      <div class="cg">
+        <div class="cc red"><div class="cci"></div><div class="ccn">GAN</div><div class="ccs">Duel → Réalisme</div></div>
+        <div class="cc green"><div class="cci"></div><div class="ccn">VAE</div><div class="ccs">Compression → Stabilité</div></div>
+        <div class="cc purple"><div class="cci"></div><div class="ccn">Diffusion</div><div class="ccs">Débruitage → Qualité</div></div>
+      </div>
+      <p>Chacune a ses forces : <strong>GAN</strong> pour la vitesse et le réalisme, <strong>VAE</strong> pour la stabilité, <strong>Diffusion</strong> pour la qualité ultime. Les meilleurs systèmes (Stable Diffusion, DALL·E 3) combinent ces architectures.</p>
+      <p>Et demain ? Le futur s'annonce encore plus impressionnant </p>
+      <div class="fl">
+        <div class="fli"> Génération vidéo (Sora)</div>
+        <div class="fli"> Texte → 3D</div>
+        <div class="fli"> IA médicale générative</div>
+        <div class="fli"> Mondes virtuels IA</div>
+        <div class="fli"> Agents visuels autonomes</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<script>
+  /* Progress bar */
+  window.addEventListener('scroll', () => {
+    const d = document.documentElement;
+    document.getElementById('progress').style.width =
+      (d.scrollTop / (d.scrollHeight - d.clientHeight) * 100) + '%';
+  });
+
+  /* Scroll reveal */
+  const io = new IntersectionObserver(
+    entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
+    { threshold: 0.07 }
+  );
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>
